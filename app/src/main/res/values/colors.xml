@@ -10,7 +10,11 @@
     <color name="colorText">#ffffff</color>
 
     <!--List Color-->
+    <color name="colorBackground">#ffffff</color>
     <color name="colorListForeground">#ffffff</color>
     <color name="colorListBackground">#eeeeee</color>
     <color name="colorListShadow">#dddddd</color>
+
+    <!--Detail Color-->
+    <color name="colorImageBackground">#777777</color>
 </resources>

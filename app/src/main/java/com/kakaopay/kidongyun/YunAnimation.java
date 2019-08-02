@@ -9,6 +9,9 @@ import android.view.animation.Animation;
 import android.view.animation.Transformation;
 
 public class YunAnimation extends Animation {
+
+    // Class : YunAnimation.
+    // Description : Animation 클래스를 활용하여 Custom Animation을 제작하기 위한 클래스.
     private View view;
     private Context context;
 

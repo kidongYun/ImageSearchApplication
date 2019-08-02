@@ -18,6 +18,7 @@ public class YunData {
 
     public YunData() { }
 
+    // Access Methods
     public String getDocUrl() { return docUrl; }
     public YunData setDocUrl(String docUrl) { this.docUrl = docUrl; return this; }
 
