@@ -69,7 +69,7 @@ public class YunListActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
-        getSupportActionBar().setTitle("Kidong Yun");
+        getSupportActionBar().setTitle("KIDONG YUN");
 
         // View들 초기화.
         searchContainer = findViewById(R.id.searchContainer);

@@ -4,19 +4,6 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <ImageView
-        android:id="@+id/image"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:padding="10dp"
-        android:background="@color/colorImageBackground"
-        android:src="@drawable/ic_launcher_foreground"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/link"
-        app:layout_constraintVertical_weight="8"/>
-
     <ImageButton
         android:id="@+id/prev"
         android:layout_width="0dp"
@@ -27,8 +14,8 @@
         android:background="@color/colorPrimary"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toLeftOf="@id/empty"
-        app:layout_constraintTop_toBottomOf="@id/image"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/image"
         app:layout_constraintHorizontal_weight="1"/>
 
     <View
@@ -38,8 +25,8 @@
         android:background="@color/colorPrimary"
         app:layout_constraintLeft_toRightOf="@id/prev"
         app:layout_constraintRight_toLeftOf="@id/link"
-        app:layout_constraintTop_toBottomOf="@id/image"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/image"
         app:layout_constraintHorizontal_weight="2" />
 
     <ImageButton
@@ -52,8 +39,8 @@
         android:background="@color/colorPrimary"
         app:layout_constraintLeft_toRightOf="@id/empty"
         app:layout_constraintRight_toLeftOf="@+id/download"
-        app:layout_constraintTop_toBottomOf="@id/image"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/image"
         app:layout_constraintHorizontal_weight="1" />
 
     <ImageButton
@@ -66,8 +53,21 @@
         android:background="@color/colorPrimary"
         app:layout_constraintLeft_toRightOf="@id/link"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/image"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/image"
         app:layout_constraintHorizontal_weight="1" />
+
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="10dp"
+        android:background="@color/colorImageBackground"
+        android:src="@drawable/ic_launcher_foreground"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/link"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_weight="8"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
