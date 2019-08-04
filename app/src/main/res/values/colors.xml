@@ -11,8 +11,8 @@
 
     <!--List Color-->
     <color name="colorBackground">#ffffff</color>
-    <color name="colorListForeground">#ffffff</color>
-    <color name="colorListBackground">#eeeeee</color>
+    <color name="colorListForeground">#eeeeee</color>
+    <color name="colorListBackground">#bbbbbb</color>
     <color name="colorListShadow">#dddddd</color>
 
     <!--Detail Color-->

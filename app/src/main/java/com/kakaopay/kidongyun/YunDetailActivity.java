@@ -27,6 +27,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,6 +37,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class YunDetailActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -47,31 +50,33 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
     ImageButton prev;
     ImageButton link;
     ImageButton download;
+    ImageButton share;
 
     YunData yunData;
-    Bitmap imageData;   // bitmap 형식의 image 데이터를 저장
+    Bitmap imageOfBitmap;   // bitmap 형식의 image 데이터를 저장
 
     private long downloadID;    // 다운로드시 필요한 id값
 
-   YunImageLoader yunImageLoader;
+    YunImageLoader yunImageLoader;
 
     Handler handler = new Handler() {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
 
-            imageData = (Bitmap)msg.obj;
-            image.setImageBitmap(imageData);
+            imageOfBitmap = (Bitmap)msg.obj;
+            image.setImageBitmap(imageOfBitmap);
         }
     };
 
+    // 다운로드 완료되었을 때 발생하는 이벤트
     private BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
 
             if(downloadID == id) {
-                Toast.makeText(YunDetailActivity.this, "Download Completed", Toast.LENGTH_SHORT).show();
+                Toast.makeText(YunDetailActivity.this, "다운로드가 완료되었습니다", Toast.LENGTH_SHORT).show();
             }
         }
     };
@@ -87,11 +92,13 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
         prev = findViewById(R.id.prev);
         link = findViewById(R.id.link);
         download = findViewById(R.id.download);
+        share = findViewById(R.id.share);
 
         // 버튼들 Listener에 연결.
         prev.setOnClickListener(this);
         link.setOnClickListener(this);
         download.setOnClickListener(this);
+        share.setOnClickListener(this);
 
         Intent intent = new Intent(this.getIntent());
 
@@ -128,6 +135,9 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
                 // 다운로드 버튼을 눌렀을 때 이미지 파일 로컬로 다운로드.
                 download();
                 break;
+            case R.id.share :
+                share();
+                break;
         }
     }
 
@@ -140,19 +150,48 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
     }
 
     private void download() {
-        File file = new File(getExternalFilesDir(null), "Dummy");
-
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(yunData.getImageUrl()))
-                .setTitle("Dummy File")// Title of the Download Notification
-                .setDescription("Downloading")// Description of the Download Notification
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)// Visibility of the download Notification
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "Sample.png") // Uri of the destination file
-                .setRequiresCharging(false)// Set if charging is required to begin the download
-                .setAllowedOverMetered(true)// Set if download is allowed on Mobile network
-                .setAllowedOverRoaming(true);// Set if download is allowed on roaming network
+                .setTitle("ImageSearchApplication")
+                .setDescription("Downloading")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,  getDate() + ".png")
+                .setRequiresCharging(false)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true);
 
         DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         downloadID = downloadManager.enqueue(request);
+    }
+
+    private String getDate() {
+        Date date = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddhhmmss");
+
+        return simpleDateFormat.format(date);
+    }
+
+    private void share() {
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + getDate() + ".png";
+
+        OutputStream outputStream;
+        File file = new File(path);
+
+        try {
+            outputStream = new FileOutputStream(file);
+            imageOfBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+            outputStream.flush();
+            outputStream.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+        intent.setType("image/*");
+        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID, new File(path)));
+        Intent chooser = Intent.createChooser(intent, "Share");
+        startActivity(chooser);
     }
 }
 

@@ -6,8 +6,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
@@ -20,6 +22,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -45,6 +48,7 @@ public class YunListActivity extends AppCompatActivity {
     YunListViewAdapter yunListViewAdapter;
 
     YunAnimation yunAnimation;
+    GestureDetector gestureDetector;
 
     String searchString = null;     // 검색 키워드를 가지고 있는 변수
 
@@ -63,7 +67,6 @@ public class YunListActivity extends AppCompatActivity {
             }
         }
     };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,7 +90,45 @@ public class YunListActivity extends AppCompatActivity {
         // Listener 함수들 초기화.
         initSearchListeners();
         initListViewListners();
+
+        YunScrollAnimationController yunScrollAnimationController = new YunScrollAnimationController(listView);
+        yunScrollAnimationController.setScrollSensitivity(10);
+        yunScrollAnimationController.addAnimation(
+                new YunScrollAnimation(searchContainer,this,50, 1),
+                new YunScrollAnimation(searchContainer,this,1, 50));
+
+        yunScrollAnimationController.start();
     }
+
+    private boolean isCompleteSearchText() {
+        if(searchEditText.getText().toString().equals("")) {
+            Toast.makeText(this, "검색어를 입력해 주세요", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void sampleGestureDetector() {
+        ConstraintLayout yunListLayout = findViewById(R.id.yunListLayout);
+
+        gestureDetector = new GestureDetector(this, new GestureDetector.OnGestureListener() {
+
+            @Override
+            public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float distanceX, float distanceY) {
+                Log.d("YUN", "onScroll()");
+                return true;
+            }
+
+            @Override public boolean onDown(MotionEvent motionEvent) { return true; }
+            @Override public void onShowPress(MotionEvent motionEvent) { }
+            @Override public boolean onSingleTapUp(MotionEvent motionEvent) { return true; }
+            @Override public void onLongPress(MotionEvent motionEvent) { }
+            @Override public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float velocityX, float velocityY) { return true; }
+        });
+    }
+
+
 
     private void initSearchListeners() {
 
