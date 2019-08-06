@@ -46,7 +46,9 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
     // Class : YunDetailActivity.
     //Description : 선택된 이미지의 상세내용을 표현하기 위한 Activity 클래스.
 
-    private int WRITE_STORAGE_PERMISSION_CODE = 0;
+    private int DOWNLOAD_PERMISSION_CODE = 0;
+    private int SHARE_PERMISSION_CODE = 1;
+    private int permission_code;
 
     // View 요소들
     private PhotoView image;
@@ -165,13 +167,19 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
                 case R.id.download :
                     // 다운로드 버튼을 눌렀을 때 이미지 파일 다운로드.
                     downloadAnimation.start();
-                    checkDownloadPermission();
+                    permission_code = DOWNLOAD_PERMISSION_CODE;
+                    if(checkPermission()) {
+                        download();
+                    }
                     break;
 
                 case R.id.share :
                     // 공유 기능
                     shareAnimation.start();
-                    share();
+                    permission_code = SHARE_PERMISSION_CODE;
+                    if(checkPermission()) {
+                        share();
+                    }
                     break;
             }
 
@@ -202,7 +210,7 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
         downloadID = downloadManager.enqueue(request);
     }
 
-    private void checkDownloadPermission() {
+    private boolean checkPermission() {
         // 다운로드 시 WRITE_EXTERNAL_STORAGE 관련 런타임 권한 부여.
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
 
@@ -210,14 +218,15 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
 
                 @Override
                 public void onClick(View view) {
-                    ActivityCompat.requestPermissions(YunDetailActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},0);
+                    ActivityCompat.requestPermissions(YunDetailActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, permission_code);
                 }
 
             }).show();
-        } else {
 
-            download();
+            return false;
         }
+
+        return true;
     }
 
     @Override
@@ -225,9 +234,13 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
         // WRITE_STORAGE PERMISSION 얻고 난 이후에 실행되는 콜백 함수. 다운로드를 다시 진행한다.
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if(requestCode == WRITE_STORAGE_PERMISSION_CODE) {
+        if(requestCode == DOWNLOAD_PERMISSION_CODE) {
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 download();
+            }
+        } else if(requestCode == SHARE_PERMISSION_CODE) {
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                share();
             }
         }
     }
