@@ -11,8 +11,6 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -48,30 +46,32 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
     // Class : YunDetailActivity.
     //Description : 선택된 이미지의 상세내용을 표현하기 위한 Activity 클래스.
 
-    int WRITE_STORAGE_PERMISSION_CODE = 0;
+    private int WRITE_STORAGE_PERMISSION_CODE = 0;
 
     // View 요소들
-    PhotoView image;
-    ImageButton prev;
-    ImageButton link;
-    ImageButton download;
-    ImageButton share;
-    ProgressBar progressBar;
+    private PhotoView image;
+    private ImageButton prev;
+    private ImageButton link;
+    private ImageButton download;
+    private ImageButton share;
+    private ProgressBar progressBar;
 
     // Button Click Animation
-    ValueAnimator prevAnimation;
-    ValueAnimator linkAnimation;
-    ValueAnimator downloadAnimation;
-    ValueAnimator shareAnimation;
+    private ValueAnimator prevAnimation;
+    private ValueAnimator linkAnimation;
+    private ValueAnimator downloadAnimation;
+    private ValueAnimator shareAnimation;
 
-    YunData yunData;
-    Bitmap imageOfBitmap;   // bitmap 형식의 image 데이터를 저장
+    private YunData yunData;
+    private Bitmap imageOfBitmap;   // bitmap 형식의 image 데이터를 저장
 
     private long downloadID;    // 다운로드시 필요한 id값
 
-    YunImageLoader yunImageLoader;
+    private YunImageLoader yunImageLoader;  // URL 기반으로 이미지를 bitmap 형식으로 가져온다.
 
-    Handler handler = new Handler() {
+    public Handler handler = new Handler() {
+        // YunImageLoader가 이미지를 가져왔을 때 처리되는 함수
+
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
@@ -85,6 +85,8 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
 
     // 다운로드 완료되었을 때 발생하는 이벤트
     private BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
+        // 다운로드가 끝났을 때 처리되는 함수.
+
         @Override
         public void onReceive(Context context, Intent intent) {
             long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
@@ -115,17 +117,21 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
         download.setOnTouchListener(this);
         share.setOnTouchListener(this);
 
+        // YunListActivity 객체에서 intent를 통해 가져온 데이터를 저장.
         Intent intent = new Intent(this.getIntent());
-        registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-
         yunData = new YunData();
         yunData.setDocUrl(intent.getStringExtra("docUrl")).setImageUrl(intent.getStringExtra("imageUrl"));
 
+        // broadcast 등록
+        registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+
+        // yunImageLoader를 통해 이미지 가져오기 시작
         yunImageLoader = new YunImageLoader(handler, yunData.getImageUrl());
         yunImageLoader.start();
 
         progressBar.setVisibility(View.VISIBLE);
 
+        // Button Color Animation 초기화 작업.
         initButtonAnimation();
     }
 
@@ -140,7 +146,6 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
         // 각 ImageButton 들을 눌렀을 때 이벤트 처리하는 함수.
 
         if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-            ((ImageButton)view).setColorFilter(Color.parseColor("#edc779"), PorterDuff.Mode.MULTIPLY);
 
             switch (view.getId()) {
                 case R.id.prev :
@@ -149,26 +154,27 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
                     prevAnimation.start();
                     overridePendingTransition(R.anim.left_to_right, R.anim.right_to_left);
                     break;
+
                 case R.id.link :
                     // 링크 버튼을 눌렀을 때 브라우저를 통해 해당 웹페이지에 연결.
                     linkAnimation.start();
                     Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(yunData.getDocUrl()));
                     startActivity(browserIntent);
                     break;
+
                 case R.id.download :
-                    // 다운로드 버튼을 눌렀을 때 이미지 파일 로컬로 다운로드.
+                    // 다운로드 버튼을 눌렀을 때 이미지 파일 다운로드.
                     downloadAnimation.start();
                     checkDownloadPermission();
                     break;
+
                 case R.id.share :
+                    // 공유 기능
                     shareAnimation.start();
                     share();
                     break;
             }
 
-        }
-        else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-            ((ImageButton)view).setColorFilter(Color.parseColor("#ffffff"), PorterDuff.Mode.MULTIPLY);
         }
 
         return false;
@@ -182,7 +188,7 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
     }
 
     private void download() {
-
+        // DownloadManager 객체를 통해 이미지를 로컬 저장소로 다운받는 함수.
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(yunData.getImageUrl()))
                 .setTitle("ImageSearchApplication")
                 .setDescription("Downloading")
@@ -197,7 +203,7 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
     }
 
     private void checkDownloadPermission() {
-        // 다운로드 시 저장소 접근 권한에 대한 예외처리.
+        // 다운로드 시 WRITE_EXTERNAL_STORAGE 관련 런타임 권한 부여.
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
 
             Snackbar.make(getWindow().getDecorView().getRootView(), "다운로드를 위해 외부 저장소 접근 권한이 필요합니다.", Snackbar.LENGTH_INDEFINITE).setAction("확인", new View.OnClickListener() {
@@ -208,8 +214,8 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
                 }
 
             }).show();
-
         } else {
+
             download();
         }
     }
@@ -227,6 +233,7 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
     }
 
     private String getDate() {
+        // 이미지 파일 이름 설정을 위한 날짜 함수.
         Date date = new Date();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddhhmmss");
 
@@ -258,8 +265,9 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnTouch
     }
 
     private void initButtonAnimation() {
-        int colorFrom = getResources().getColor(R.color.colorYellow);
-        int colorTo = getResources().getColor(R.color.colorText);
+        // Color Animation 설정을 위한 초기화 함수.
+        int colorFrom = ContextCompat.getColor(this, R.color.colorYellow);
+        int colorTo = ContextCompat.getColor(this, R.color.colorText);
 
         prevAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
         linkAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
@@ -307,8 +315,8 @@ class YunImageLoader extends Thread {
     // Class : YunImageLoader
     // Description : Url기반 http 통신으로 Image를 가져오는 클래스.
 
-    String urlStr;
-    Handler handler;
+    private String urlStr;
+    public Handler handler;
 
     public YunImageLoader(Handler handler, String urlStr) {
         this.handler = handler;

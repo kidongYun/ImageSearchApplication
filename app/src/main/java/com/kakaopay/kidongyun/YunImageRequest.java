@@ -19,7 +19,7 @@ import java.net.URL;
 public class YunImageRequest extends Thread {
 
     // Class : YunImageRequest.
-    // Description : Kakao Image Search API를 활용하여 이미지 검색 데이터를 가져오는 기능을 하는 클래스.
+    // Description : Kakao Image Search API를 활용하여 이미지 검색 데이터를 가져오는 클래스.
 
     public static boolean IS_LOCK = false;  // YunImageRequest 인스턴스 실행 시에 중복 실행을 방지하고 상호배제를 위한 boolean 변수
     public static int REQUEST_PAGE = 1;
@@ -55,18 +55,21 @@ public class YunImageRequest extends Thread {
             JSONArray jsonArray = parseToJSON(requestStream(urlStr));
 
             if(jsonArray.size() == 0) {
+                // 받아온 데이터가 없는 경우
+
                 Message msg = new Message();
                 msg.what = NO_RESULT;
 
                 handler.sendMessage(msg);
-
                 IS_LOCK = false;
+
             } else {
+                // 받아온 데이터가 있는 경우
 
                 for(int i=0; i<jsonArray.size(); i++) {
                     Message msg = new Message();
                     msg.what = RESULT;
-                    msg.obj = parseToKData((JSONObject)jsonArray.get(i));
+                    msg.obj = parseToYunData((JSONObject)jsonArray.get(i));
 
                     handler.sendMessage(msg);
 
@@ -118,7 +121,7 @@ public class YunImageRequest extends Thread {
         return jsonArray;
     }
 
-    public YunData parseToKData(JSONObject jsonItem) throws IOException {
+    private YunData parseToYunData(JSONObject jsonItem) throws IOException {
         // JSON TYPE을 이 어플리케이션에서 사용하기 용이하도록 YunData TYPE으로 변환.
 
         YunData yunData = new YunData();

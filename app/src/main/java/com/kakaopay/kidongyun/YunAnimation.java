@@ -2,7 +2,6 @@ package com.kakaopay.kidongyun;
 
 import android.content.Context;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,22 +11,23 @@ import android.view.animation.Transformation;
 public class YunAnimation extends Animation {
 
     // Class : YunAnimation.
-    // Description : Animation 클래스를 활용하여 Custom Animation을 제작하기 위한 클래스.
+    // Description : Animation 클래스를 상속하여 Custom Animation을 제작하기 위한 클래스.
 
+    // 애니메이션 되어지는 대상
     private View view;
-    private Context context;
 
+    // 크기 애니메이션을 위한 시작값과 끝값.
     private float fromWidth;
     private float fromHeight;
     private float toWidth;
     private float toHeight;
 
+    // 패딩 애니메이션을 위한 시작값과 끝값.
     private int fromPadding;
     private int toPadding;
 
     public YunAnimation(View view, Context context, int duration) {
         this.view = view;
-        this.context = context;
 
         this.fromWidth = view.getWidth();
         this.toWidth = view.getWidth();
@@ -58,6 +58,7 @@ public class YunAnimation extends Animation {
     }
 
     private float dpToPixels(Context context, float dpValue){
+        // dp 수치를 pixel로 변환하는 함수.
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,  dpValue, metrics);
     }

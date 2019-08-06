@@ -9,7 +9,6 @@ import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -25,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -40,39 +40,41 @@ public class YunListActivity extends AppCompatActivity {
     // Class : YunListActivity.
     // Description : 이미지 검색 결과를 보여주기 위한 ListView Activity 클래스.
 
-    private final long FINISH_INTERVAL_TIME = 2000;     // 어플 종료를 위한 시간 값
+    // 어플 종료를 위한 시간 값
+    private final long FINISH_INTERVAL_TIME = 2000;
     private long   backPressedTime = 0;
 
     private boolean REQUEST_LOCK = false;
 
     // View 요소들
-    ConstraintLayout yunListLayout;
-    ConstraintLayout searchContainer;
-    ListView listView;
-    ImageView noResultImage;
-    ImageButton searchBtn;
-    EditText searchEditText;
-    ProgressBar progressBar;
+    private ConstraintLayout yunListLayout;
+    private ConstraintLayout searchContainer;
+    private ListView listView;
+    private ImageView noResultImage;
+    private ImageButton searchBtn;
+    private EditText searchEditText;
+    private ProgressBar progressBar;
 
-    YunImageRequest yunImageRequest;
-    ArrayList<YunData> yunDatas;
+    public YunImageRequest yunImageRequest;
+    public ArrayList<YunData> yunDatas;
 
-    YunListViewAdapter yunListViewAdapter;
+    private YunListViewAdapter yunListViewAdapter;
 
-    YunAnimation yunAnimation;
-    YunScrollAnimationController yunScrollAnimationController;
+    private YunAnimation yunAnimation;
+    private YunScrollAnimationController yunScrollAnimationController;
 
-    String searchString = null;     // 검색 키워드를 가지고 있는 변수
+    private String searchString = null;     // 검색 키워드를 가지고 있는 변수
 
-    Handler handler = new Handler() {
+    public Handler handler = new Handler() {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
 
             if(msg.what == yunImageRequest.NO_RESULT) {
-                Log.d("YUN", "handleMessage - NO_RESULT ... ");
+                // YunImageRequest 결과 데이터가 없는 경우
 
                 if(yunListViewAdapter.isEmpty()) {
+                    // 처음 검색하는 경우 (listview 데이터가 없는 경우)
                     noResultImage.setVisibility(View.VISIBLE);
                     listView.setVisibility(View.INVISIBLE);
                 }
@@ -83,6 +85,7 @@ public class YunListActivity extends AppCompatActivity {
                 REQUEST_LOCK = true;
 
             } else {
+                // YunImageRequest 결과 데이터가 있는 경우
                 noResultImage.setVisibility(View.INVISIBLE);
                 listView.setVisibility(View.VISIBLE);
 
@@ -91,7 +94,6 @@ public class YunListActivity extends AppCompatActivity {
                 yunListViewAdapter.notifyDataSetChanged();
 
                 if(!YunImageRequest.IS_LOCK) {
-                    // 이미지 가져오는 작업이 끝나게 되면 progressBar를 숨김.
                     progressBar.setVisibility(View.GONE);
                 }
             }
@@ -116,6 +118,7 @@ public class YunListActivity extends AppCompatActivity {
         yunImageRequest = new YunImageRequest(handler);
         yunDatas = new ArrayList<>();
 
+        // listview 초기화
         yunListViewAdapter = new YunListViewAdapter(getApplicationContext(), R.layout.list_item, yunDatas);
         listView.setAdapter(yunListViewAdapter);
 
@@ -141,7 +144,7 @@ public class YunListActivity extends AppCompatActivity {
         else
         {
             backPressedTime = tempTime;
-            Snackbar.make(getWindow().getDecorView().getRootView(), "한번 더 누르면 종료됩니다.", Snackbar.LENGTH_SHORT).show();
+            Toast.makeText(this, "한번 더 누르면 종료됩니다.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -179,6 +182,8 @@ public class YunListActivity extends AppCompatActivity {
     }
 
     private void btnEffect() {
+        // 버튼 클릭 애니메이션 구현을 위한 함수.
+
         int colorFrom = getResources().getColor(R.color.colorYellow);
         int colorTo = getResources().getColor(R.color.colorText);
         ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
@@ -196,7 +201,6 @@ public class YunListActivity extends AppCompatActivity {
     }
 
     private void initListViewListners() {
-
         // listView에서 Scroll 이벤트를 위한 함수
         listView.setOnScrollListener(new AbsListView.OnScrollListener() {
 
@@ -211,8 +215,6 @@ public class YunListActivity extends AppCompatActivity {
                         yunImageRequest = new YunImageRequest(handler);
                         yunImageRequest.setQuery(searchString).nextPage();
                         yunImageRequest.start();
-
-
                     }
                 }
             }

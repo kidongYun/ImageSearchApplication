@@ -3,10 +3,11 @@ package com.kakaopay.kidongyun;
 import android.graphics.Bitmap;
 import android.util.Log;
 
-// Class : YunData.
-// Description : Kakao Rest API에서 이미지 검색 결과를 받아올 때 JSON 객체를 저장 및 표현하기 위한 자료구조 객체
-
 public class YunData {
+
+    // Class : YunData.
+    // Description : Kakao Rest API에서 이미지 검색 결과를 받아올 때 JSON 객체를 저장 및 표현하기 위한 자료구조 객체
+
     private String docUrl;
     private String datetime;
     private String displaySiteName;
@@ -43,9 +44,10 @@ public class YunData {
     public int getHeight() { return height; }
     public YunData setHeight(int height) { this.height = height; return this; }
 
+    public String getDate() { return getDatetime().substring(0, 10); }
+
     public void log() {
         Log.d("KakaoIntern", "docUrl : " + getDocUrl() + ", datetime : " + getDatetime() + ", displaySitename : " + getDisplaySiteName() + ", imageUrl : " + getImageUrl() + ", collection : " + getCollection() + ", thumbnail : " + getThumbnailUrl() + ", width :" + getWidth() + ", height : " +  getHeight());
     }
 
-    public String getDate() { return getDatetime().substring(0, 10); }
 }
