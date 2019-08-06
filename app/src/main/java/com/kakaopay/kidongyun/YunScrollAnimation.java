@@ -2,88 +2,85 @@ package com.kakaopay.kidongyun;
 
 import android.content.Context;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 
 public class YunScrollAnimation {
+    public static int SENSITIVITY = 5;
+
     private View targetView;
-    private int SENSITIVITY = 5;
+    private Context context;
 
-    private int fromHeight;
-    private int toHeight;
+    private int fromValue;
+    private int toValue;
 
-    public YunScrollAnimation(View targetView, Context context,int fromHeight, int toHeight) {
+    private int state;
+
+    public YunScrollAnimation(View targetView, Context context, float fromValue, float toValue) {
         this.targetView = targetView;
+        this.context = context;
 
-//        this.fromHeight = targetView.getHeight();
-        this.fromHeight = Math.round(dipToPixels(context, fromHeight));
-        this.toHeight = Math.round(dipToPixels(context, toHeight));
+        this.fromValue = dpToPixels(context, fromValue);
+        this.toValue = dpToPixels(context, toValue);
     }
 
-    public void start() {
+    private int dpToPixels(Context context, float dpValue) {
+        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        float temp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dpValue, metrics);
+        return Math.round(temp);
+    }
 
+    public void start(int state) {
+        this.state = state;
         android.view.ViewGroup.LayoutParams targetViewLayoutParams = targetView.getLayoutParams();
 
-        if(fromHeight > toHeight) {
-            if(targetViewLayoutParams.height >= toHeight + SENSITIVITY) {
+        if(fromValue > toValue) {
+            if(targetViewLayoutParams.height >= toValue + SENSITIVITY) {
                 targetViewLayoutParams.height = targetViewLayoutParams.height - SENSITIVITY;
-            } else if(targetViewLayoutParams.height < (toHeight + SENSITIVITY) && targetViewLayoutParams.height > toHeight) {
-                targetViewLayoutParams.height = toHeight;
+            } else if(targetViewLayoutParams.height < (toValue + SENSITIVITY) && targetViewLayoutParams.height > toValue) {
+                targetViewLayoutParams.height = toValue;
             }
         } else {
-            if(targetViewLayoutParams.height <= toHeight - SENSITIVITY) {
+            if(targetViewLayoutParams.height <= toValue - SENSITIVITY) {
                 targetViewLayoutParams.height = targetViewLayoutParams.height + SENSITIVITY;
-            } else if(targetViewLayoutParams.height > (toHeight + SENSITIVITY) && targetViewLayoutParams.height < toHeight) {
-                targetViewLayoutParams.height = toHeight;
+            } else if(targetViewLayoutParams.height > (toValue + SENSITIVITY) && targetViewLayoutParams.height < toValue) {
+                targetViewLayoutParams.height = toValue;
             }
         }
 
         targetView.setLayoutParams(targetViewLayoutParams);
     }
-
     public void actionUp() {
         android.view.ViewGroup.LayoutParams targetViewLayoutParams = targetView.getLayoutParams();
 
-        if(fromHeight != toHeight) {
-            targetViewLayoutParams.height = toHeight;
+        if (fromValue != toValue) {
+            targetViewLayoutParams.height = toValue;
+
+            if(state == 1) {
+                targetView.setVisibility(View.GONE);
+            }
         }
 
         targetView.setLayoutParams(targetViewLayoutParams);
     }
 
-    public void setWidthSensitivity(int sensitivity) {
-        this.SENSITIVITY = sensitivity;
-    }
-
-    private float dipToPixels(Context context, float dipValue){
-        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,  dipValue, metrics);
-    }
+    public View getTargetView() { return targetView; }
 }
 
 class YunScrollAnimationController {
-
     private final int SCROLL_UP_STATE = 1;
     private final int SCROLL_DOWN_STATE = 2;
-    private final int SCROLL_LEFT_STATE = 4;
-    private final int SCROLL_RIGHT_STATE = 8;
     private final int NULL_STATE = 16;
 
-    private View contorllerView;
+    private View controllerView;
+    private int action_up_sensitivity = 30;
 
-    private int SENSITIVITY = 10;
-    private int ACTION_UP_SENSITIVITY = 30;
-
-    private int x = 0;
     private int y = 0;
-
-    private int prevX;
     private int prevY;
 
     private int state = NULL_STATE;
-
-    private int stateValueX = 0;
     private int stateValueY = 0;
 
     private boolean IS_FIRST_FLAG = false;
@@ -91,20 +88,17 @@ class YunScrollAnimationController {
     private YunScrollAnimation scrollUpAnimation;
     private YunScrollAnimation scrollDownAnimation;
 
-    public YunScrollAnimationController(View contorllerView) { this.contorllerView = contorllerView; }
+    public YunScrollAnimationController(View controllerView) { this.controllerView = controllerView; }
 
-
-    public void addAnimation(YunScrollAnimation scrollUpAnimation, YunScrollAnimation scrollDownAnimation) {
-        this.scrollUpAnimation = scrollUpAnimation;
-        this.scrollDownAnimation = scrollDownAnimation;
-    }
+    public void addScrollUpAnimation(YunScrollAnimation scrollUpAnimation) { this.scrollUpAnimation = scrollUpAnimation; }
+    public void addScrollDownAnimation(YunScrollAnimation scrollDownAnimation) { this.scrollDownAnimation = scrollDownAnimation; }
 
     public void start() {
         onListening();
     }
 
     private void onListening() {
-        contorllerView.setOnTouchListener(new View.OnTouchListener() {
+        controllerView.setOnTouchListener(new View.OnTouchListener() {
 
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -113,17 +107,17 @@ class YunScrollAnimationController {
                     case MotionEvent.ACTION_MOVE:
 
                         if (!IS_FIRST_FLAG) {
-                            setXY(motionEvent);
+                            setY(motionEvent);
                             IS_FIRST_FLAG = true;
                         } else {
-                            setPrevXY();
-                            setXY(motionEvent);
+                            setPrevY();
+                            setY(motionEvent);
                             setState();
                         }
 
-                        if (prevY > y + SENSITIVITY) {
+                        if (prevY > y + YunScrollAnimation.SENSITIVITY) {
                             scrollUp();
-                        } else if (prevY + SENSITIVITY < y) {
+                        } else if (prevY + YunScrollAnimation.SENSITIVITY < y) {
                             scrollDown();
                         }
                         break;
@@ -135,12 +129,9 @@ class YunScrollAnimationController {
                             if (scrollDownAnimation != null) { scrollDownAnimation.actionUp(); }
                         }
 
-                        x = 0;
                         y = 0;
-                        prevX = 0;
                         prevY = 0;
                         state = NULL_STATE;
-                        stateValueX = 0;
                         stateValueY = 0;
                         IS_FIRST_FLAG = false;
                         break;
@@ -153,44 +144,31 @@ class YunScrollAnimationController {
 
     private void scrollUp() {
         if (scrollUpAnimation == null) { return; }
-        scrollUpAnimation.start();
+        scrollUpAnimation.start(SCROLL_UP_STATE);
     }
 
     private void scrollDown() {
         if (scrollDownAnimation == null) { return; }
-        scrollDownAnimation.start();
+        scrollDownAnimation.getTargetView().setVisibility(View.VISIBLE);
+        scrollDownAnimation.start(SCROLL_DOWN_STATE);
     }
 
-    private void setXY(MotionEvent motionEvent) {
-        this.x = (int) motionEvent.getRawX();
+    private void setY(MotionEvent motionEvent) {
         this.y = (int) motionEvent.getRawY();
     }
 
-    private void setPrevXY() {
-        this.prevX = x;
+    private void setPrevY() {
         this.prevY = y;
     }
 
     private void setState() {
-        stateValueX = stateValueX + (x - prevX);
         stateValueY = stateValueY + (y - prevY);
 
-        if (Math.abs(stateValueX) > Math.abs(stateValueY)) {
-            if (stateValueX > ACTION_UP_SENSITIVITY) {
-                state = SCROLL_RIGHT_STATE;
-            } else if (stateValueX < -ACTION_UP_SENSITIVITY) {
-                state = SCROLL_LEFT_STATE;
-            }
-        } else {
-            if (stateValueY > ACTION_UP_SENSITIVITY) {
-                state = SCROLL_DOWN_STATE;
-            } else if (stateValueY < -ACTION_UP_SENSITIVITY) {
-                state = SCROLL_UP_STATE;
-            }
+        if (stateValueY > action_up_sensitivity) {
+            state = SCROLL_DOWN_STATE;
+        } else if (stateValueY < -action_up_sensitivity) {
+            state = SCROLL_UP_STATE;
         }
     }
-
-    public void setScrollSensitivity(int sensitivity) {
-        this.SENSITIVITY = sensitivity;
-    }
 }
+

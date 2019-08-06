@@ -1,26 +1,27 @@
 package com.kakaopay.kidongyun;
 
 import android.Manifest;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.provider.MediaStore;
-import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,8 +30,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.github.chrisbanes.photoview.PhotoView;
+import com.google.android.material.snackbar.Snackbar;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,17 +43,26 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class YunDetailActivity extends AppCompatActivity implements View.OnClickListener {
+public class YunDetailActivity extends AppCompatActivity implements View.OnTouchListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     // Class : YunDetailActivity.
     //Description : 선택된 이미지의 상세내용을 표현하기 위한 Activity 클래스.
 
-    //View 요소들
-    ImageView image;
+    int WRITE_STORAGE_PERMISSION_CODE = 0;
+
+    // View 요소들
+    PhotoView image;
     ImageButton prev;
     ImageButton link;
     ImageButton download;
     ImageButton share;
+    ProgressBar progressBar;
+
+    // Button Click Animation
+    ValueAnimator prevAnimation;
+    ValueAnimator linkAnimation;
+    ValueAnimator downloadAnimation;
+    ValueAnimator shareAnimation;
 
     YunData yunData;
     Bitmap imageOfBitmap;   // bitmap 형식의 image 데이터를 저장
@@ -66,6 +78,8 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
 
             imageOfBitmap = (Bitmap)msg.obj;
             image.setImageBitmap(imageOfBitmap);
+
+            progressBar.setVisibility(View.GONE);
         }
     };
 
@@ -76,7 +90,7 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
             long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
 
             if(downloadID == id) {
-                Toast.makeText(YunDetailActivity.this, "다운로드가 완료되었습니다", Toast.LENGTH_SHORT).show();
+                Snackbar.make(getWindow().getDecorView().getRootView(), "다운로드가 완료되었습니다.", Snackbar.LENGTH_SHORT).show();
             }
         }
     };
@@ -93,15 +107,15 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
         link = findViewById(R.id.link);
         download = findViewById(R.id.download);
         share = findViewById(R.id.share);
+        progressBar = findViewById(R.id.progressBar);
 
         // 버튼들 Listener에 연결.
-        prev.setOnClickListener(this);
-        link.setOnClickListener(this);
-        download.setOnClickListener(this);
-        share.setOnClickListener(this);
+        prev.setOnTouchListener(this);
+        link.setOnTouchListener(this);
+        download.setOnTouchListener(this);
+        share.setOnTouchListener(this);
 
         Intent intent = new Intent(this.getIntent());
-
         registerReceiver(onDownloadComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 
         yunData = new YunData();
@@ -109,6 +123,10 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
 
         yunImageLoader = new YunImageLoader(handler, yunData.getImageUrl());
         yunImageLoader.start();
+
+        progressBar.setVisibility(View.VISIBLE);
+
+        initButtonAnimation();
     }
 
     @Override
@@ -118,29 +136,43 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
     }
 
     @Override
-    public void onClick(View view) {
+    public boolean onTouch(View view, MotionEvent motionEvent) {
         // 각 ImageButton 들을 눌렀을 때 이벤트 처리하는 함수.
-        switch (view.getId()) {
-            case R.id.prev :
-                // 뒤로가기 버튼을 눌렀을 때 Detail Activity를 종료하고 이전 Activity로 돌아간다.
-                super.onBackPressed();
-                overridePendingTransition(R.anim.left_to_right, R.anim.right_to_left);
-                break;
-            case R.id.link :
-                // 링크 버튼을 눌렀을 때 브라우저를 통해 해당 웹페이지에 연결.
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(yunData.getDocUrl()));
-                startActivity(browserIntent);
-                break;
-            case R.id.download :
-                // 다운로드 버튼을 눌렀을 때 이미지 파일 로컬로 다운로드.
-                download();
-                break;
-            case R.id.share :
-                share();
-                break;
-        }
-    }
 
+        if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            ((ImageButton)view).setColorFilter(Color.parseColor("#edc779"), PorterDuff.Mode.MULTIPLY);
+
+            switch (view.getId()) {
+                case R.id.prev :
+                    // 뒤로가기 버튼을 눌렀을 때 Detail Activity를 종료하고 이전 Activity로 돌아간다.
+                    super.onBackPressed();
+                    prevAnimation.start();
+                    overridePendingTransition(R.anim.left_to_right, R.anim.right_to_left);
+                    break;
+                case R.id.link :
+                    // 링크 버튼을 눌렀을 때 브라우저를 통해 해당 웹페이지에 연결.
+                    linkAnimation.start();
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(yunData.getDocUrl()));
+                    startActivity(browserIntent);
+                    break;
+                case R.id.download :
+                    // 다운로드 버튼을 눌렀을 때 이미지 파일 로컬로 다운로드.
+                    downloadAnimation.start();
+                    checkDownloadPermission();
+                    break;
+                case R.id.share :
+                    shareAnimation.start();
+                    share();
+                    break;
+            }
+
+        }
+        else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+            ((ImageButton)view).setColorFilter(Color.parseColor("#ffffff"), PorterDuff.Mode.MULTIPLY);
+        }
+
+        return false;
+    }
 
     @Override
     public void onBackPressed() {
@@ -150,6 +182,7 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
     }
 
     private void download() {
+
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(yunData.getImageUrl()))
                 .setTitle("ImageSearchApplication")
                 .setDescription("Downloading")
@@ -161,6 +194,36 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
 
         DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         downloadID = downloadManager.enqueue(request);
+    }
+
+    private void checkDownloadPermission() {
+        // 다운로드 시 저장소 접근 권한에 대한 예외처리.
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+
+            Snackbar.make(getWindow().getDecorView().getRootView(), "다운로드를 위해 외부 저장소 접근 권한이 필요합니다.", Snackbar.LENGTH_INDEFINITE).setAction("확인", new View.OnClickListener() {
+
+                @Override
+                public void onClick(View view) {
+                    ActivityCompat.requestPermissions(YunDetailActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},0);
+                }
+
+            }).show();
+
+        } else {
+            download();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        // WRITE_STORAGE PERMISSION 얻고 난 이후에 실행되는 콜백 함수. 다운로드를 다시 진행한다.
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if(requestCode == WRITE_STORAGE_PERMISSION_CODE) {
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                download();
+            }
+        }
     }
 
     private String getDate() {
@@ -192,6 +255,49 @@ public class YunDetailActivity extends AppCompatActivity implements View.OnClick
         intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID, new File(path)));
         Intent chooser = Intent.createChooser(intent, "Share");
         startActivity(chooser);
+    }
+
+    private void initButtonAnimation() {
+        int colorFrom = getResources().getColor(R.color.colorYellow);
+        int colorTo = getResources().getColor(R.color.colorText);
+
+        prevAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+        linkAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+        downloadAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+        shareAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+
+        prevAnimation.setDuration(250);
+        linkAnimation.setDuration(250);
+        downloadAnimation.setDuration(250);
+        shareAnimation.setDuration(250);
+
+        prevAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                prev.setColorFilter((int) valueAnimator.getAnimatedValue());
+            }
+        });
+
+        linkAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                link.setColorFilter((int) valueAnimator.getAnimatedValue());
+            }
+        });
+
+        downloadAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                download.setColorFilter((int) valueAnimator.getAnimatedValue());
+            }
+        });
+
+        shareAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                share.setColorFilter((int) valueAnimator.getAnimatedValue());
+            }
+        });
     }
 }
 

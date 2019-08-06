@@ -1,12 +1,15 @@
 package com.kakaopay.kidongyun;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -22,11 +25,13 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 
@@ -35,9 +40,16 @@ public class YunListActivity extends AppCompatActivity {
     // Class : YunListActivity.
     // Description : 이미지 검색 결과를 보여주기 위한 ListView Activity 클래스.
 
+    private final long FINISH_INTERVAL_TIME = 2000;     // 어플 종료를 위한 시간 값
+    private long   backPressedTime = 0;
+
+    private boolean REQUEST_LOCK = false;
+
     // View 요소들
+    ConstraintLayout yunListLayout;
     ConstraintLayout searchContainer;
     ListView listView;
+    ImageView noResultImage;
     ImageButton searchBtn;
     EditText searchEditText;
     ProgressBar progressBar;
@@ -48,7 +60,7 @@ public class YunListActivity extends AppCompatActivity {
     YunListViewAdapter yunListViewAdapter;
 
     YunAnimation yunAnimation;
-    GestureDetector gestureDetector;
+    YunScrollAnimationController yunScrollAnimationController;
 
     String searchString = null;     // 검색 키워드를 가지고 있는 변수
 
@@ -57,13 +69,31 @@ public class YunListActivity extends AppCompatActivity {
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
 
-            // 가져온 이미지 데이터를 YunData 타입의 배열리스트에 저장.
-            yunDatas.add((YunData)msg.obj);
-            yunListViewAdapter.notifyDataSetChanged();
+            if(msg.what == yunImageRequest.NO_RESULT) {
+                Log.d("YUN", "handleMessage - NO_RESULT ... ");
 
-            if(!YunImageRequest.IS_LOCK) {
-                // 이미지 가져오는 작업이 끝나게 되면 progressBar를 숨김.
+                if(yunListViewAdapter.isEmpty()) {
+                    noResultImage.setVisibility(View.VISIBLE);
+                    listView.setVisibility(View.INVISIBLE);
+                }
+
                 progressBar.setVisibility(View.GONE);
+                Snackbar.make(getWindow().getDecorView().getRootView(), "검색 결과가 없습니다.", Snackbar.LENGTH_SHORT).show();
+
+                REQUEST_LOCK = true;
+
+            } else {
+                noResultImage.setVisibility(View.INVISIBLE);
+                listView.setVisibility(View.VISIBLE);
+
+                // 가져온 이미지 데이터를 YunData 타입의 배열리스트에 저장.
+                yunDatas.add((YunData)msg.obj);
+                yunListViewAdapter.notifyDataSetChanged();
+
+                if(!YunImageRequest.IS_LOCK) {
+                    // 이미지 가져오는 작업이 끝나게 되면 progressBar를 숨김.
+                    progressBar.setVisibility(View.GONE);
+                }
             }
         }
     };
@@ -75,11 +105,13 @@ public class YunListActivity extends AppCompatActivity {
         getSupportActionBar().setTitle("KIDONG YUN");
 
         // View들 초기화.
+        yunListLayout = findViewById(R.id.yunListLayout);
         searchContainer = findViewById(R.id.searchContainer);
         searchBtn = findViewById(R.id.searchBtn);
         searchEditText = findViewById(R.id.searchEditText);
         progressBar = findViewById(R.id.progressBar);
         listView = findViewById(R.id.listView);
+        noResultImage = findViewById(R.id.noResultImage);
 
         yunImageRequest = new YunImageRequest(handler);
         yunDatas = new ArrayList<>();
@@ -87,60 +119,47 @@ public class YunListActivity extends AppCompatActivity {
         yunListViewAdapter = new YunListViewAdapter(getApplicationContext(), R.layout.list_item, yunDatas);
         listView.setAdapter(yunListViewAdapter);
 
+        yunScrollAnimationController = new YunScrollAnimationController(listView);
+        yunScrollAnimationController.addScrollUpAnimation(new YunScrollAnimation(searchContainer, this, 50, 1));
+        yunScrollAnimationController.addScrollDownAnimation(new YunScrollAnimation(searchContainer, this, 1, 50));
+        yunScrollAnimationController.start();
+
         // Listener 함수들 초기화.
         initSearchListeners();
         initListViewListners();
-
-        YunScrollAnimationController yunScrollAnimationController = new YunScrollAnimationController(listView);
-        yunScrollAnimationController.setScrollSensitivity(10);
-        yunScrollAnimationController.addAnimation(
-                new YunScrollAnimation(searchContainer,this,50, 1),
-                new YunScrollAnimation(searchContainer,this,1, 50));
-
-        yunScrollAnimationController.start();
     }
 
-    private boolean isCompleteSearchText() {
-        if(searchEditText.getText().toString().equals("")) {
-            Toast.makeText(this, "검색어를 입력해 주세요", Toast.LENGTH_SHORT).show();
-            return false;
+    @Override
+    public void onBackPressed() {
+        long tempTime = System.currentTimeMillis();
+        long intervalTime = tempTime - backPressedTime;
+
+        if (0 <= intervalTime && FINISH_INTERVAL_TIME >= intervalTime)
+        {
+            ActivityCompat.finishAffinity(this);
         }
-
-        return true;
+        else
+        {
+            backPressedTime = tempTime;
+            Snackbar.make(getWindow().getDecorView().getRootView(), "한번 더 누르면 종료됩니다.", Snackbar.LENGTH_SHORT).show();
+        }
     }
-
-    private void sampleGestureDetector() {
-        ConstraintLayout yunListLayout = findViewById(R.id.yunListLayout);
-
-        gestureDetector = new GestureDetector(this, new GestureDetector.OnGestureListener() {
-
-            @Override
-            public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float distanceX, float distanceY) {
-                Log.d("YUN", "onScroll()");
-                return true;
-            }
-
-            @Override public boolean onDown(MotionEvent motionEvent) { return true; }
-            @Override public void onShowPress(MotionEvent motionEvent) { }
-            @Override public boolean onSingleTapUp(MotionEvent motionEvent) { return true; }
-            @Override public void onLongPress(MotionEvent motionEvent) { }
-            @Override public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float velocityX, float velocityY) { return true; }
-        });
-    }
-
-
 
     private void initSearchListeners() {
 
         // 검색 버튼을 클릭했을 때 애니메이션 작업과 이미지 검색 요청을 위한 부분.
-        searchBtn.setOnClickListener(new View.OnClickListener() {
+        searchBtn.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View view) {
-                yunAnimation = new YunAnimation(searchContainer, getApplicationContext(),600);
-                searchContainer.startAnimation(yunAnimation);
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                if(motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                    ((ImageButton)view).setColorFilter(Color.parseColor("#BDBDBD"), PorterDuff.Mode.MULTIPLY);
 
-                offKeyboard(view);
-                search();
+                    btnEffect();
+                    offKeyboard(view);
+                    search();
+                }
+
+                return false;
             }
         });
 
@@ -151,15 +170,29 @@ public class YunListActivity extends AppCompatActivity {
 
                 // 엔터키가 눌렸을 때 키보드를 내리고 이미지 검색을 요청 하는 함수.
                 if((keyEvent.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
-                    yunAnimation = new YunAnimation(searchContainer, getApplicationContext(),600);
-                    searchContainer.startAnimation(yunAnimation);
-
                     offKeyboard(view);
                     search();
                 }
                 return false;
             }
         });
+    }
+
+    private void btnEffect() {
+        int colorFrom = getResources().getColor(R.color.colorYellow);
+        int colorTo = getResources().getColor(R.color.colorText);
+        ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+        colorAnimation.setDuration(250); // milliseconds
+        colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+            @Override
+            public void onAnimationUpdate(ValueAnimator animator) {
+                searchBtn.setColorFilter((int) animator.getAnimatedValue());
+            }
+
+        });
+
+        colorAnimation.start();
     }
 
     private void initListViewListners() {
@@ -169,22 +202,18 @@ public class YunListActivity extends AppCompatActivity {
 
             @Override
             public void onScroll(AbsListView absListView, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                Log.d("KakaoIntern", "firstVisibleItem : " + firstVisibleItem);
 
                 // listview의 내용물이 마지막까지 도달했을 때 새로운 데이터를 갱신하는 부분.
                 if(firstVisibleItem + visibleItemCount >= totalItemCount && totalItemCount > 0) {
-                    if(!YunImageRequest.IS_LOCK) {
+                    if(!YunImageRequest.IS_LOCK && !REQUEST_LOCK) {
                         progressBar.setVisibility(View.VISIBLE);
 
                         yunImageRequest = new YunImageRequest(handler);
                         yunImageRequest.setQuery(searchString).nextPage();
                         yunImageRequest.start();
+
+
                     }
-                }
-
-                // listview의 스크롤이 첫부분에 있을 때
-                if(firstVisibleItem == 0) {
-
                 }
             }
 
@@ -211,7 +240,12 @@ public class YunListActivity extends AppCompatActivity {
     private void search() {
 
         // 이미지 검색이 먼저 실시되고 있는지 확인하는 부분.
-        if(!YunImageRequest.IS_LOCK) {
+        if(!YunImageRequest.IS_LOCK && checkSearchText()) {
+            REQUEST_LOCK = false;
+
+            yunAnimation = new YunAnimation(searchContainer, getApplicationContext(),600);
+            searchContainer.startAnimation(yunAnimation);
+
             yunDatas.clear();
             yunImageRequest.intializePage();
 
@@ -228,6 +262,16 @@ public class YunListActivity extends AppCompatActivity {
     private void offKeyboard(View view) {
         InputMethodManager inputMethodManager = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
         inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
+    // 검색어 예외처리 함수
+    private boolean checkSearchText() {
+        if(searchEditText.getText().toString().equals("")) {
+            Snackbar.make(getWindow().getDecorView().getRootView(), "검색어를 입력해 주세요.", Snackbar.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
     }
 
 }
@@ -278,7 +322,7 @@ class YunListViewAdapter extends BaseAdapter {
         width.setText(yunDatas.get(i).getWidth() + "");
         height.setText(yunDatas.get(i).getHeight() + "");
         displaySitename.setText(yunDatas.get(i).getDisplaySiteName());
-        year.setText(yunDatas.get(i).getYear());
+        year.setText(yunDatas.get(i).getDate());
         collection.setText(yunDatas.get(i).getCollection());
 
         return view;

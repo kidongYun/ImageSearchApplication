@@ -32,7 +32,7 @@ public class YunAnimation extends Animation {
         this.fromWidth = view.getWidth();
         this.toWidth = view.getWidth();
         this.fromHeight = view.getHeight();
-        this.toHeight = dipToPixels(context, 50);
+        this.toHeight = dpToPixels(context, 50);
 
         this.fromPadding = view.getPaddingLeft();
         this.toPadding = 0;
@@ -57,8 +57,8 @@ public class YunAnimation extends Animation {
 
     }
 
-    public float dipToPixels(Context context, float dipValue){
+    private float dpToPixels(Context context, float dpValue){
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,  dipValue, metrics);
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,  dpValue, metrics);
     }
 }

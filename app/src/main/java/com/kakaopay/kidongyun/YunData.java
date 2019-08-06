@@ -47,7 +47,5 @@ public class YunData {
         Log.d("KakaoIntern", "docUrl : " + getDocUrl() + ", datetime : " + getDatetime() + ", displaySitename : " + getDisplaySiteName() + ", imageUrl : " + getImageUrl() + ", collection : " + getCollection() + ", thumbnail : " + getThumbnailUrl() + ", width :" + getWidth() + ", height : " +  getHeight());
     }
 
-    public String getYear() {
-        return getDatetime().substring(0, 4);
-    }
+    public String getDate() { return getDatetime().substring(0, 10); }
 }

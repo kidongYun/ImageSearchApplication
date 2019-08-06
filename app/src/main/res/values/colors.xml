@@ -3,7 +3,7 @@
     <!--Basic Color-->
     <color name="colorPrimary">#666666</color>
     <color name="colorPrimaryDark">#333333</color>
-    <color name="colorAccent">#D81B60</color>
+    <color name="colorAccent">#edc779</color>
 
     <!--Text and EditText Color-->
     <color name="colorEditTextBackground">#777777</color>
@@ -17,4 +17,6 @@
 
     <!--Detail Color-->
     <color name="colorImageBackground">#777777</color>
+
+    <color name="colorYellow">#edc779</color>
 </resources>

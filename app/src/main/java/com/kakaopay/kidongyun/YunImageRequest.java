@@ -24,10 +24,12 @@ public class YunImageRequest extends Thread {
     public static boolean IS_LOCK = false;  // YunImageRequest 인스턴스 실행 시에 중복 실행을 방지하고 상호배제를 위한 boolean 변수
     public static int REQUEST_PAGE = 1;
 
+    public final int NO_RESULT = -100;
+    public final int RESULT = 100;
+
     public Handler handler;
 
     private String query;
-    private String sort;
 
     private final String APP_KEY = "c17ccc77e1404784cf078e75f5951eac";  // Kakao Rest API를 사용하기 위한 키
     private final String KAKAO_IMAGE_API_HOST = "https://dapi.kakao.com/v2/search/image";   // Image Search API를 사용하기 위한 호스트 주소
@@ -40,10 +42,10 @@ public class YunImageRequest extends Thread {
     public void run() {
         super.run();
         IS_LOCK = true;
-        request(query, sort);
+        request(query);
     }
 
-    private void request(String query, String sort) {
+    private void request(String query) {
         //  이미지를 요청해서 가져오는 전체적인 과정이 담긴 함수
 
         try {
@@ -52,17 +54,27 @@ public class YunImageRequest extends Thread {
             String urlStr = KAKAO_IMAGE_API_HOST + "?query=" + query + "?page=" + REQUEST_PAGE;
             JSONArray jsonArray = parseToJSON(requestStream(urlStr));
 
-            for(int i=0; i<jsonArray.size(); i++) {
+            if(jsonArray.size() == 0) {
                 Message msg = new Message();
+                msg.what = NO_RESULT;
 
-                msg.obj = parseToKData((JSONObject)jsonArray.get(i));
                 handler.sendMessage(msg);
 
-                if(i >= jsonArray.size() - 1) {
-                    IS_LOCK = false;
+                IS_LOCK = false;
+            } else {
+
+                for(int i=0; i<jsonArray.size(); i++) {
+                    Message msg = new Message();
+                    msg.what = RESULT;
+                    msg.obj = parseToKData((JSONObject)jsonArray.get(i));
+
+                    handler.sendMessage(msg);
+
+                    if(i >= jsonArray.size() - 1) {
+                        IS_LOCK = false;
+                    }
                 }
             }
-
         } catch (IOException ie) {
             ie.printStackTrace();
         } catch (Exception e) {
@@ -125,7 +137,6 @@ public class YunImageRequest extends Thread {
 
     // Access Methods
     public YunImageRequest setQuery(String query) { this.query = query; return this; }
-    public YunImageRequest setSort(String sort) { this.sort = sort; return this; }
     public YunImageRequest nextPage() { REQUEST_PAGE++; return this; }
     public YunImageRequest intializePage() { REQUEST_PAGE = 1; return this; }
 

@@ -55,7 +55,7 @@
             android:src="@drawable/search"
             android:scaleType="fitCenter"
             android:padding="10dp"
-            android:background="@color/colorPrimary"
+            android:background="@color/colorYellow"
             app:layout_constraintLeft_toRightOf="@id/searchEditText"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -70,10 +70,26 @@
         android:layout_height="0dp"
         android:divider="@color/colorListBackground"
         android:dividerHeight="10.0sp"
+        android:visibility="invisible"
+
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/searchContainer"></ListView>
+
+    <ImageView
+        android:id="@+id/noResultImage"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="visible"
+        android:padding="100dp"
+        android:src="@drawable/no_result"
+        android:background="@color/colorPrimary"
+
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/searchContainer" />
 
     <ProgressBar
         android:id="@+id/progressBar"
